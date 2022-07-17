@@ -10,3 +10,4 @@ Template ESX Legacy v1.7.5
 - ox_inventory (https://github.com/overextended/ox_inventory)
 - sublime_administration (https://github.com/SUBLiME-Association/sublime_administration-fivem-esxLegacy)
 - sublime_playerCreator (https://github.com/SUBLiME-Association/GTA5-FiveM)
+- fCarDealer (https://github.com/Fellow25/fCarDealer)
