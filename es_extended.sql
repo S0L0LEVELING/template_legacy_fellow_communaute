@@ -203,16 +203,6 @@ CREATE TABLE `items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Déchargement des données de la table `items`
---
-
-INSERT INTO `items` (`name`, `label`, `weight`, `rare`, `can_remove`) VALUES
-('bread', 'Bread', 1, 0, 1),
-('water', 'Water', 1, 0, 1);
-
--- --------------------------------------------------------
-
---
 -- Structure de la table `jobs`
 --
 
