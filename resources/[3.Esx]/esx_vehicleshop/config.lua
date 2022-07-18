@@ -3,12 +3,12 @@ Config.DrawDistance               = 5.0
 Config.Distance               	  = 1.5
 Config.MarkerColor                = {r = 255, g = 255, b = 255}
 Config.ResellPercentage           = 50
-Config.Qtarget 					  = true
-Config.RentCar 					  = true
-Config.PlateRentedCar 			  = "PDM"
-Config.IPL 					      = true
-Config.CloseCar 				  = true
-Config.changePrice 				  = true
+Config.Qtarget 		          = false
+Config.RentCar 			  = true
+Config.PlateRentedCar 		  = "PDM"
+Config.IPL 			  = true
+Config.CloseCar 		  = true
+Config.changePrice 		  = true
 Config.Locale                     = 'fr'
 
 Config.ColorMenu = {
@@ -34,7 +34,7 @@ Config.Blip = {
 	Colour  = 0
 }
 
-Config.Zone = { -- sans loop
+Config.Zone = {
 
 	ShopOutside = {
 		Pos     = vector3(-35.9, -1102.8, 25.5),
@@ -51,7 +51,7 @@ Config.Zone = { -- sans loop
 	},
 }
 
-Config.Zones = { -- avec loop
+Config.Zones = {
 
 	ShopEntering = {
 		Pos   = vector3(-30.10, -1105.13, 25.45),
