@@ -7,7 +7,7 @@ shared = {
 	playerweight = GetConvarInt('inventory:weight', 30000),
 	autoreload = GetConvar('inventory:autoreload', 'false') == 'true',
 	trimplate = GetConvar('inventory:trimplate', 'true') == 'true',
-	qtarget = GetConvar('inventory:qtarget', 'false') == 'true',
+	qtarget = GetConvar('inventory:qtarget', 'true') == 'true',
 	police = json.decode(GetConvar('inventory:police', '["police", "sheriff"]')),
 }
 
