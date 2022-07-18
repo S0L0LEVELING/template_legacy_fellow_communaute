@@ -3,7 +3,7 @@ Config.DrawDistance               = 5.0
 Config.Distance               	  = 1.5
 Config.MarkerColor                = {r = 255, g = 255, b = 255}
 Config.ResellPercentage           = 50
-Config.Qtarget 					  = false
+Config.Qtarget 					  = true
 Config.RentCar 					  = true
 Config.PlateRentedCar 			  = "PDM"
 Config.IPL 					      = true
@@ -27,26 +27,26 @@ Config.PlateUseSpace = true
 Config.OxInventory = ESX.GetConfig().OxInventory
 
 Config.Blip = {
-	Coords = vector3(162.602875, -1103.831787, 29.211443),
+	Coords = vector3(-63.3, -1092.6, 26.5),
 	Sprite  = 326,
 	Display = 4,
 	Scale   = 0.7,
 	Colour  = 0
 }
 
-Config.Zone = { -- sans loop(120.509315, -1097.478149, 29.211447, 177.465775)
+Config.Zone = { -- sans loop
 
 	ShopOutside = {
-		Pos     = vector3 (120.933128, -1099.723389, 28.568134),
+		Pos     = vector3(-35.9, -1102.8, 25.5),
 		Size    = {x = 1.5, y = 1.5, z = 1.0},
-		Heading = 177.465775,
+		Heading = 330.0,
 		Type    = -1,
 	},
 
 	ShopInside = {
-		Pos     = vector3 (120.933128, -1099.723389, 28.568134),
+		Pos     = vector3(-35.9, -1102.8, 25.5),
 		Size    = {x = 1.5, y = 1.5, z = 1.0},
-		Heading = 177.465775,
+		Heading = -20.0,
 		Type    = -1,
 	},
 }
@@ -54,10 +54,11 @@ Config.Zone = { -- sans loop(120.509315, -1097.478149, 29.211447, 177.465775)
 Config.Zones = { -- avec loop
 
 	ShopEntering = {
-		Pos   = vector3(162.602875, -1103.831787, 28.31),
+		Pos   = vector3(-30.10, -1105.13, 25.45),
 		Size  = {x = 0.7, y = 0.7, z = 0.7},
 		Type  = 25,
 		message = "Appuyez sur [E]",
+		qmessage = "Accéder à l'ordinateur",
 		func = function() openCarDealer() end,
 		event = "esx_vehicleshop:openCarDealer",
 		grade = {'recruit', 'novice', 'experienced', 'boss'},
@@ -66,10 +67,11 @@ Config.Zones = { -- avec loop
 
 
 	BossActions = {
-		Pos   = vector3 (144.025284, -1100.602539, 28.31),
+		Pos   = vector3(-32.0, -1114.2, 25.45),
 		Size  = {x = 0.7, y = 0.7, z = 0.7},
 		Type  = 25,
 		message = "Appuyez sur [E]",
+		qmessage = "Accéder à l'ordinateur",
 		func = function() OpenBossMenu() end,
 		event = "esx_vehicleshop:OpenBossMenu",
 		grade = {'boss'},
@@ -87,7 +89,7 @@ Config.Zones = { -- avec loop
 	},
 
 	ResellVehicle = {
-		Pos   = vector3(135.077652, -1107.412109, 28.603029),
+		Pos   = vector3(-43.92, -1082.63, 25.96),
 		Size  = {x = 3.0, y = 3.0, z = 1.0},
 		Type  = 1,
 		message = "Appuyez sur ~r~[~s~E~r~]~s~ pour revendre le véhicule",
