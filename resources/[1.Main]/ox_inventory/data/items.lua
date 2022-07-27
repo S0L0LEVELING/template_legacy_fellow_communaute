@@ -185,12 +185,4 @@ return {
             usetime = 3500
 		}
 	},
-
-	['bread'] = {
-		label = 'bread',
-		weight = 1,
-		stack = true,
-		close = true,
-		description = nil
-	},
 }

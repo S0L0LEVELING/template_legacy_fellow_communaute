@@ -365,17 +365,21 @@ end
 
 local function randomLoot(loot)
 	local items = {}
-	local size = #loot
-	for i = 1, math.random(0, 3) do
-		if i > size then return items end
-		local item = randomItem(loot, items, size)
-		if math.random(1, 100) <= (item[4] or 80) then
-			local count = math.random(item[2], item[3])
-			if count > 0 then
-				items[#items+1] = {item[1], count}
+
+	if loot then
+		local size = #loot
+		for i = 1, math.random(0, 3) do
+			if i > size then return items end
+			local item = randomItem(loot, items, size)
+			if math.random(1, 100) <= (item[4] or 80) then
+				local count = math.random(item[2], item[3])
+				if count > 0 then
+					items[#items+1] = {item[1], count}
+				end
 			end
 		end
 	end
+
 	return items
 end
 
@@ -444,11 +448,13 @@ function Inventory.Load(id, invType, owner)
 	end
 
 	if result then
+		local ostime = os.time()
+
 		for _, v in pairs(result) do
 			local item = Items(v.name)
 			if item then
 				if v.metadata then
-					v.metadata = Items.CheckMetadata(v.metadata, item, v.name)
+					v.metadata = Items.CheckMetadata(v.metadata, item, v.name, ostime)
 				end
 
 				local slotWeight = Inventory.SlotWeight(item, v)
@@ -471,15 +477,23 @@ local table = lib.table
 function Inventory.GetItem(inv, item, metadata, returnsCount)
 	if type(item) ~= 'table' then item = Items(item) end
 
-	if item then item = returnsCount and item or table.clone(item)
+	if item then
+		item = returnsCount and item or table.clone(item)
 		inv = Inventory(inv)
 		local count = 0
 
 		if inv then
+			local ostime = os.time()
 			metadata = not metadata and false or type(metadata) == 'string' and {type=metadata} or metadata
+
 			for _, v in pairs(inv.items) do
 				if v and v.name == item.name and (not metadata or table.contains(v.metadata, metadata)) then
 					count += v.count
+					local durability = v.metadata.durability
+
+					if durability and durability > 100 and ostime >= durability then
+						v.metadata.durability = 0
+					end
 				end
 			end
 		end
@@ -554,12 +568,19 @@ exports('GetCurrentWeapon', Inventory.GetCurrentWeapon)
 
 ---@param inv string | number
 ---@param slot number
----@return table item
+---@return table? item
 function Inventory.GetSlot(inv, slot)
 	inv = Inventory(inv)
 
 	if inv then
-		return inv.items[slot]
+		slot = inv.items[slot]
+		local durability = slot?.metadata.durability
+
+		if durability and durability > 100 and os.time() >= durability then
+			slot.metadata.durability = 0
+		end
+
+		return slot
 	end
 end
 exports('GetSlot', Inventory.GetSlot)
@@ -1356,6 +1377,11 @@ local function saveInventories(lock)
 
 	db.saveInventories(parameters[1], parameters[2], parameters[3])
 end
+
+RegisterNetEvent('ox_inventory:savedb:oncrash')
+AddEventHandler('ox_inventory:savedb:oncrash', function()
+    saveInventories(true)
+end)
 
 AddEventHandler('txAdmin:events:scheduledRestart', function(eventData)
 	if eventData.secondsRemaining == 60 then
