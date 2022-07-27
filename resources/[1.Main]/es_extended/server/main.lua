@@ -1,6 +1,7 @@
 SetMapName('San Andreas')
 SetGameType('ESX Legacy')
 
+local PlayersConnected = {}
 local newPlayer = 'INSERT INTO `users` SET `accounts` = ?, `identifier` = ?, `group` = ?'
 local loadPlayer = 'SELECT `accounts`, `job`, `job_grade`, `faction`, `faction_grade`, `group`, `position`, `inventory`, `skin`, `loadout`'
 
@@ -36,6 +37,8 @@ else
         while not next(ESX.Jobs) and not next(ESX.Factions) do
             Wait(50)
         end
+
+        if not PlayersConnected[_source] then PlayersConnected[_source] = _source end
 
         if not ESX.Players[_source] then
             onPlayerJoined(_source)
@@ -386,12 +389,20 @@ AddEventHandler('playerDropped', function(reason)
     local playerId = source
     local xPlayer = ESX.GetPlayerFromId(playerId)
 
+    PlayersConnected[playerId] = nil
+
     if xPlayer then
         TriggerEvent('esx:playerDropped', playerId, reason)
 
         Core.SavePlayer(xPlayer, function()
             ESX.Players[playerId] = nil
         end)
+    end
+
+    if Config.OxInventory then
+        if not next(PlayersConnected) or #PlayersConnected < 1 then
+            TriggerEvent('ox_inventory:savedb:oncrash')
+        end
     end
 end)
 
