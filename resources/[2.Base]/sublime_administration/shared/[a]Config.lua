@@ -5,7 +5,7 @@ _Admin.Panel = _Admin.Panel or {}
 --| ESX Legacy Version & RageUI Library
 
 _Admin.MainUser = {
-    "", -- "license", ou ce que vous retourne xPlayer.identifier si vous avez modifié es_extended pour que la fonction vous retourne le steamID par exemple
+    "3ec9bce5eb7535d3878b70bc3aad0d48fb307b18", -- "license", ou ce que vous retourne xPlayer.identifier si vous avez modifié es_extended pour que la fonction vous retourne le steamID par exemple
 }
 
 
@@ -27,9 +27,11 @@ _Admin.Config = {
     --
     TypeWeight = 'kg',
     --
+    ox_inventory = true,
+    --
     TypeMoney = '$',
     --
-    DoubleJob = false, -- false ou 'fbase' (fbase = doublejob qui passe sur la meme fonction ESX.DoesJobExist)
+    DoubleJob = true, -- false ou 'fbase' (fbase = doublejob qui passe sur la meme fonction ESX.DoesJobExist)
     --
     SQL_Wrapper = "oxmysql", --> mysql or oxmysql -- IMPORTANT (change in fxmanifest your dependencies)
     --
