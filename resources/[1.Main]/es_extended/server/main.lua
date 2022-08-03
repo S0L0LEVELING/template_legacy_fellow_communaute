@@ -33,7 +33,7 @@ else
     RegisterNetEvent('esx:onPlayerJoined')
     AddEventHandler('esx:onPlayerJoined', function()
         local _source = source
-        while not next(ESX.Jobs) do
+        while not next(ESX.Jobs) and not next(ESX.Factions) do
             Wait(50)
         end
 
