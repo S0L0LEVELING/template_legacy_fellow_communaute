@@ -484,7 +484,10 @@ function Inventory.GetItem(inv, item, metadata, returnsCount)
 
 		if inv then
 			local ostime = os.time()
-			metadata = not metadata and false or type(metadata) == 'string' and {type=metadata} or metadata
+
+			if type(metadata) ~= 'table' then
+				metadata = metadata and { type = metadata or nil }
+			end
 
 			for _, v in pairs(inv.items) do
 				if v and v.name == item.name and (not metadata or table.contains(v.metadata, metadata)) then
@@ -614,7 +617,7 @@ function Inventory.SetMetadata(inv, slot, metadata)
 	slot = type(slot) == 'number' and (inv and inv.items[slot])
 	if inv and slot then
 		if inv then
-			slot.metadata = type(metadata) == 'table' and metadata or {type = metadata}
+			slot.metadata = type(metadata) == 'table' and metadata or { type = metadata or nil }
 
 			if metadata.weight then
 				inv.weight -= slot.weight
@@ -716,7 +719,10 @@ function Inventory.Search(inv, search, items, metadata)
 
 			if search == 'slots' then search = 1 elseif search == 'count' then search = 2 end
 			if type(items) == 'string' then items = {items} end
-			if type(metadata) == 'string' then metadata = {type=metadata} end
+
+			if type(metadata) ~= 'table' then
+				metadata = metadata and { type = metadata or nil }
+			end
 
 			local itemCount = #items
 			local returnData = {}
@@ -787,8 +793,8 @@ function Inventory.RemoveItem(inv, item, count, metadata, slot)
 	if item and count > 0 then
 		inv = Inventory(inv)
 
-		if metadata ~= nil then
-			metadata = type(metadata) == 'string' and {type=metadata} or metadata
+		if type(metadata) ~= 'table' then
+			metadata = metadata and { type = metadata or nil }
 		end
 
 		local itemSlots, totalCount = Inventory.GetItemSlots(inv, item, metadata)
@@ -844,7 +850,7 @@ function Inventory.CanCarryItem(inv, item, count, metadata)
 	if type(item) ~= 'table' then item = Items(item) end
 	if item then
 		inv = Inventory(inv)
-		local itemSlots, totalCount, emptySlots = Inventory.GetItemSlots(inv, item, metadata == nil and {} or type(metadata) == 'string' and {type=metadata} or metadata)
+		local itemSlots, totalCount, emptySlots = Inventory.GetItemSlots(inv, item, type(metadata) == 'table' and metadata or { type = metadata or nil })
 		local weight = metadata?.weight or item.weight
 
 		if next(itemSlots) or emptySlots > 0 then
@@ -1378,9 +1384,10 @@ local function saveInventories(lock)
 	db.saveInventories(parameters[1], parameters[2], parameters[3])
 end
 
-RegisterNetEvent('ox_inventory:savedb:oncrash')
-AddEventHandler('ox_inventory:savedb:oncrash', function()
-    saveInventories(true)
+AddEventHandler('playerDropped', function()
+	if GetNumPlayerIndices() == 0 then
+		saveInventories()
+	end
 end)
 
 AddEventHandler('txAdmin:events:scheduledRestart', function(eventData)
@@ -1526,7 +1533,9 @@ end)
 lib.addCommand('group.admin', {'additem', 'giveitem'}, function(source, args)
 	args.item = Items(args.item)
 	if args.item and args.count > 0 then
-		Inventory.AddItem(args.target, args.item.name, args.count, args.metatype)
+		local metadata = args.metatype and { type = tonumber(args.metatype) or args.metatype }
+		Inventory.AddItem(args.target, args.item.name, args.count, metadata)
+
 		local inventory = Inventories[args.target]
 		source = Inventories[source] or {label = 'console', owner = 'console'}
 
@@ -1536,12 +1545,14 @@ lib.addCommand('group.admin', {'additem', 'giveitem'}, function(source, args)
 		)
 
 	end
-end, {'target:number', 'item:string', 'count:number', 'metatype:?string'})
+end, {'target:number', 'item:string', 'count:number', 'metatype'})
 
 lib.addCommand('group.admin', 'removeitem', function(source, args)
 	args.item = Items(args.item)
 	if args.item and args.count > 0 then
-		Inventory.RemoveItem(args.target, args.item.name, args.count, args.metaType)
+		local metadata = args.metatype and { type = tonumber(args.metatype) or args.metatype }
+		Inventory.RemoveItem(args.target, args.item.name, args.count, metadata)
+
 		local inventory = Inventories[args.target]
 		source = Inventories[source] or {label = 'console', owner = 'console'}
 
@@ -1551,7 +1562,7 @@ lib.addCommand('group.admin', 'removeitem', function(source, args)
 		)
 
 	end
-end, {'target:number', 'item:string', 'count:number', 'metatype:?string'})
+end, {'target:number', 'item:string', 'count:number', 'metatype'})
 
 lib.addCommand('group.admin', 'setitem', function(source, args)
 	args.item = Items(args.item)
@@ -1651,21 +1662,42 @@ Inventory.CustomStash = table.create(0, 0)
 --- groups: { ['police'] = 0 }
 --- ```
 local function RegisterStash(name, label, slots, maxWeight, owner, groups, coords)
-	if type(name) == 'string' then
-		if not Inventory.CustomStash[name] then
-			Inventory.CustomStash[name] = {
-				name = name,
-				label = label,
-				owner = owner,
-				slots = slots,
-				weight = maxWeight,
-				groups = groups,
-				coords = coords
-			}
-		end
-	else
+	if type(name) ~= 'string' then
 		error(('received %s for stash name (expected string)'):format(type(name)))
 	end
+
+	if not slots then
+		error(('received %s for stash slots (expected number)'):format(slots))
+	end
+
+	if not maxWeight then
+		error(('received %s for stash maxWeight (expected number)'):format(maxWeight))
+	end
+
+	if coords then
+		local typeof = type(coords)
+		if typeof ~= 'vector3' then
+			if typeof == 'table' then
+				coords = vec3(coords.x or coords[1], coords.y or coords[2], coords.z or coords[3])
+			else
+				error(('received %s for stash coords (expected vector3)'):format(typeof))
+			end
+		end
+	end
+
+	if Inventory.CustomStash[name] then
+		print(('overwriting stash %s with new settings'):format(name))
+	end
+
+	Inventory.CustomStash[name] = {
+		name = name,
+		label = label,
+		owner = owner,
+		slots = slots,
+		weight = maxWeight,
+		groups = groups,
+		coords = coords
+	}
 end
 exports('RegisterStash', RegisterStash)
 
