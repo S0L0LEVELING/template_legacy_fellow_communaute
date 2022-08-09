@@ -341,7 +341,7 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
 			self.faction.name  = factionObject.name
 			self.faction.label = factionObject.label
 	
-			self.faction.grade        = tonumber(grade)
+			self.faction.grade        = tonumber(gradef)
 			self.faction.grade_name   = gradefObject.name
 			self.faction.grade_label  = gradefObject.label
 			self.faction.grade_salary = gradefObject.salary
