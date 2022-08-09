@@ -15,6 +15,7 @@ AddEventHandler('esx:onPlayerSpawn', function()
             if skin == nil then
                 TriggerEvent('skinchanger:loadSkin', {sex = 0})
                 Citizen.Wait(50)
+                SetPlayerInvincible(PlayerId(), true)
                 SublimeIndex.StartCharacterCreator()
             else
                 TriggerEvent('skinchanger:loadSkin', skin)
@@ -85,6 +86,7 @@ function SublimeIndex.EndCharacterCreator()
         FreezeEntityPosition(PlayerPedId(), false)
         ClearPedTasks(PlayerPedId())
         ESX.ShowNotification("<C>~y~Création du personnage terminé !\n ~s~Bon jeu ! </C>")
+        SetPlayerInvincible(PlayerId(), false)
     end)
 end
 
