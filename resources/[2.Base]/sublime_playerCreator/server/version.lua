@@ -1,52 +1,45 @@
 -------------------------------------------------------------------------------------------
 --------------------------------VERSION CHECK----------------------------------------------
 -------------------------------------------------------------------------------------------
--- Ne pas toucher
-local Version = 
-([==[{ 
-    "enable": true,
-    "script": "sublime_playerCreator",
-    "version": "0.0.1",
-    "changelog": "Correction coord z au first spawn + possibiliter de créer un personnage chauve.",
-    "link": "https://github.com/SUBLiME-Association/GTA5-FiveM/tree/main/%5Besx-legacy%5D/sublime_playerCreator-esxLegacy"
-}]==])
+-- Ne pas toucher! / Don't touch it!
 
-local HTTPrequest = "https://raw.githubusercontent.com/SUBLiME-Association/version-script-sublime/main/sublime-playerCreator.json"
+local HTTPrequest = "https://raw.githubusercontent.com/SUBLiME-Association/sublime_playerCreator-fivem-esxLegacy/main/version.json"
 
-Citizen.CreateThread(function()
-	local _v = json.decode(Version)
-	if json.encode(_v.enable) == "true" then
-		PerformHttpRequest(HTTPrequest, function(code, res, headers)
-			if code == 200 then
-				local _gv = json.decode(res)
-				if _gv.script == _v.script then
-					if _gv.version ~= _v.version then 
-					    print((
-                            [[
-^6----------------------------------------------------------------------
-^4INFORMATION: ^2Veuillez mettre à jour %s!
-^4VERSION: ^2La version %s est disponible!
-^4CHANGELOG:^2 %s
-^4DOWNLOAD:^2 %s
-^6-----------------------------------------------------------------------
-]]):format(_gv.script,_gv.version,_gv.changelog,_gv.link))
-				    end
-			    else
-				    print((
-                        [[
-^6----------------------------------------------------------------------
-^4INFORMATION: ^2Veuillez mettre à jour %s!
-^4VERSION: ^2La version %s est disponible!
-^4CHANGELOG:^2 %s
-^4DOWNLOAD:^2 %s
-^6-----------------------------------------------------------------------
-]]):format(_gv.script,_gv.version,_gv.changelog,_gv.link))
-                end
-			else
-				print(('[^6%s^0] [^1ERROR^0] Impossible de vérifier la version!'):format(tostring(_v.script)))
-			end
-		end, 'GET')
+local function replaceString(str, args)
+	for i = 1, #args do
+		str = string.gsub(str, "#value#", args[i], 1)
 	end
+	return str
+end
+
+CreateThread(function()
+	Wait(5000)
+	local files, x = LoadResourceFile(GetCurrentResourceName(), 'version.json')
+	if files then x = json.decode(files) else return print("[^1ERROR^0] Impossible de vérifier la version car le fichier n'existe pas!") end
+	PerformHttpRequest(HTTPrequest, function(code, text, headers)
+		if code == 200 then
+			local versionArray = json.decode(text)
+			local gitVersion, gitScript, gitLink = versionArray.version, versionArray.script, versionArray.link
+			if gitScript ~= x.script then return ("[^1ERROR^0] Impossible de vérifier la version car le fichier a été renommée!") 
+			else
+				if gitVersion ~= x.version then
+					print("\n^6----------------------------------------------------------------------")
+					local changelog = versionArray.changelog
+					local patchnote = ''
+					for _,v in pairs(changelog)do
+						patchnote = patchnote..v..'\n'
+					end
+					--print(patchnote, 'p')
+					print(replaceString("^4Nouvelle version de sublime_playerCreator disponible (votre version :^1 #value# ^4| nouvelle version :^2 #value#^4)", {x.version, gitVersion}))
+					print(patchnote)
+					print(("^8Download here : ^5%s"):format(gitLink))
+					print("\n^6----------------------------------------------------------------------")
+				end
+			end
+		else
+			print(('[^6%s^0] [^1ERROR^0] Impossible de vérifier la version!'):format(tostring(x.script)))
+		end
+	end, 'GET')
 end)
 
 -------------------------------------------------------------------------------------------
