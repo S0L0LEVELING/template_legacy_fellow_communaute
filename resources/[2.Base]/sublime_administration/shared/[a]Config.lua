@@ -31,7 +31,7 @@ _Admin.Config = {
     --
     TypeMoney = '$',
     --
-    DoubleJob = true, -- false ou 'fbase' (fbase = doublejob qui passe sur la meme fonction ESX.DoesJobExist)
+    DoubleJob = true, -- false ou 'fbase' (fbase = doublejob qui passe sur la meme fonction ESX.DoesJobExist) (true == https://sup2ak.gitbook.io/documentation/esx-legacy)
     --
     SQL_Wrapper = "oxmysql", --> mysql or oxmysql -- IMPORTANT (change in fxmanifest your dependencies)
     --
