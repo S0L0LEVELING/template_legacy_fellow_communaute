@@ -1,13 +1,13 @@
 --[[ FX Information ]]--
 fx_version   'cerulean'
-use_fxv2_oal 'yes'
+use_experimental_fxv2_oal 'yes'
 lua54        'yes'
 game         'gta5'
 
 --[[ Resource Information ]]--
 name         'qtarget'
 author       'Linden, Noms'
-version      '2.1.6'
+version      '2.2.0'
 repository   'https://github.com/overextended/qtarget'
 description  'An optimised targetting solution, based on bt-target'
 

@@ -34,11 +34,16 @@ end
 local playerPed
 local GetEntityCoords = GetEntityCoords
 local Wait = Wait
+local pcall = pcall
+local HasEntityClearLosToEntity = HasEntityClearLosToEntity
+local GetEntityType = GetEntityType
+local StartShapeTestLosProbe = StartShapeTestLosProbe
+local GetShapeTestResult = GetShapeTestResult
+local PlayerPedId = PlayerPedId
 
 ---@param flag number
----@param playerCoords vector
----@return number flag
----@return vector coords
+---@param playerCoords vector3
+---@return vector3 coords
 ---@return number distance
 ---@return number entity
 ---@return number entity_type
@@ -47,15 +52,26 @@ local function RaycastCamera(flag, playerCoords)
 	if not playerCoords then playerCoords = GetEntityCoords(playerPed) end
 
 	local rayPos, rayDir = ScreenPositionToCameraRay()
-	local destination = rayPos + 10000 * rayDir
-	local rayHandle = StartShapeTestLosProbe(rayPos.x, rayPos.y, rayPos.z, destination.x, destination.y, destination.z, flag or -1, playerPed, 0)
+	local destination = rayPos + 16 * rayDir
+	local rayHandle = StartShapeTestLosProbe(rayPos.x, rayPos.y, rayPos.z, destination.x, destination.y, destination.z, flag or -1, playerPed, 7)
 
 	while true do
 		local result, _, endCoords, _, entityHit = GetShapeTestResult(rayHandle)
 
 		if result ~= 1 then
 			local distance = playerCoords and #(playerCoords - endCoords)
-			return endCoords, distance, entityHit, entityHit and GetEntityType(entityHit) or 0
+
+			if flag == 30 and entityHit then
+				entityHit = HasEntityClearLosToEntity(entityHit, playerPed, 7) and entityHit
+			end
+
+			local entityType = entityHit and GetEntityType(entityHit)
+
+			if entityType == 0 and pcall(GetEntityModel, entityHit) then
+				entityType = 3
+			end
+
+			return endCoords, distance, entityHit, entityType or 0
 		end
 
 		Wait(0)
@@ -83,7 +99,7 @@ local function EnableNUI()
 	hasFocus = true
 end
 
-local success  = false
+local success = false
 local sendData = {}
 local sendDistance = {}
 local nuiData = {}
@@ -161,7 +177,7 @@ local IsDisabledControlPressed = IsDisabledControlPressed
 ---@param distance number
 local function CheckEntity(flag, data, entity, distance)
 	if not next(data) then return end
-	SetupOptions(data, entity, distance)
+	SetupOptions(data, entity, distance, false)
 	if not next(nuiData) then
 		LeaveTarget()
 		DrawOutlineEntity(entity, false)
@@ -200,7 +216,7 @@ local Bones = Load('bones')
 local GetEntityBoneIndexByName = GetEntityBoneIndexByName
 local GetWorldPositionOfEntityBone = GetWorldPositionOfEntityBone
 
----@param coords vector
+---@param coords vector3
 ---@param entity number
 ---@param bonelist table
 ---@return boolean | number
@@ -306,7 +322,7 @@ local function EnableTarget()
 		until not targetActive
 	end)
 
-	local flag
+	local flag = 30
 
 	while targetActive do
 		local sleep = 0
@@ -337,16 +353,18 @@ local function EnableTarget()
 				elseif entityType == 2 then
 					local closestBone, _, closestBoneName = CheckBones(coords, entity, Bones.Vehicle)
 					local data = Bones.Options[closestBoneName]
+
 					if data and next(data) and closestBone then
-						SetupOptions(data, entity, distance)
+						SetupOptions(data, entity, distance, false)
 						if next(nuiData) then
 							success = true
 							SendNUIMessage({response = 'validTarget', data = nuiData})
 							DrawOutlineEntity(entity, true)
 							while targetActive and success do
-								local _, dist, entity2 = RaycastCamera(flag)
+								local coords2, dist, entity2 = RaycastCamera(flag)
 								if entity == entity2 then
-									local closestBone2 = CheckBones(coords, entity, Bones.Vehicle)
+									local closestBone2 = CheckBones(coords2, entity, Bones.Vehicle)
+
 									if closestBone ~= closestBone2 then
 										LeaveTarget()
 										DrawOutlineEntity(entity, false)
@@ -504,13 +522,15 @@ if Config.Toggle then
 		if targetActive then
 			DisableTarget(true)
 		else
-			EnableTarget()
+			CreateThread(EnableTarget)
 		end
 	end, false)
 	RegisterKeyMapping("playerTarget", "Toggle targeting~", "keyboard", Config.OpenKey)
 	TriggerEvent('chat:removeSuggestion', '/playerTarget')
 else
-	RegisterCommand('+playerTarget', EnableTarget, false)
+	RegisterCommand('+playerTarget', function()
+		CreateThread(EnableTarget)
+	end, false)
 	RegisterCommand('-playerTarget', DisableTarget, false)
 	RegisterKeyMapping("+playerTarget", "Enable targeting~", "keyboard", Config.OpenKey)
 	TriggerEvent('chat:removeSuggestion', '/+playerTarget')
@@ -643,29 +663,37 @@ exports('AddTargetBone', AddTargetBone)
 local function RemoveTargetBone(bones, labels)
 	if type(bones) == 'table' then
 		for _, bone in pairs(bones) do
-			if type(labels) == 'table' then
-				for _, v in pairs(labels) do
+			if labels then
+				if type(labels) == 'table' then
+					for _, v in pairs(labels) do
+						if Bones.Options[bone] then
+							Bones.Options[bone][v] = nil
+						end
+					end
+				elseif type(labels) == 'string' then
 					if Bones.Options[bone] then
-						Bones.Options[bone][v] = nil
+						Bones.Options[bone][labels] = nil
 					end
 				end
-			elseif type(labels) == 'string' then
-				if Bones.Options[bone] then
-					Bones.Options[bone][labels] = nil
-				end
+			else
+				Bones.Options[bone] = nil
 			end
 		end
 	else
-		if type(labels) == 'table' then
-			for _, v in pairs(labels) do
+		if labels then
+			if type(labels) == 'table' then
+				for _, v in pairs(labels) do
+					if Bones.Options[bones] then
+						Bones.Options[bones][v] = nil
+					end
+				end
+			elseif type(labels) == 'string' then
 				if Bones.Options[bones] then
-					Bones.Options[bones][v] = nil
+					Bones.Options[bones][labels] = nil
 				end
 			end
-		elseif type(labels) == 'string' then
-			if Bones.Options[bones] then
-				Bones.Options[bones][labels] = nil
-			end
+		else
+			Bones.Options[bones] = nil
 		end
 	end
 end
@@ -695,30 +723,38 @@ local function RemoveTargetEntity(entities, labels)
 	if type(entities) == 'table' then
 		for _, entity in pairs(entities) do
 			if NetworkGetEntityIsNetworked(entity) then entity = NetworkGetNetworkIdFromEntity(entity) end -- Allow non-networked entities to be targeted
-			if type(labels) == 'table' then
-				for _, v in pairs(labels) do
+			if labels then
+				if type(labels) == 'table' then
+					for _, v in pairs(labels) do
+						if Entities[entity] then
+							Entities[entity][v] = nil
+						end
+					end
+				elseif type(labels) == 'string' then
 					if Entities[entity] then
-						Entities[entity][v] = nil
+						Entities[entity][labels] = nil
 					end
 				end
-			elseif type(labels) == 'string' then
-				if Entities[entity] then
-					Entities[entity][labels] = nil
-				end
+			else
+				Entities[entity] = nil
 			end
 		end
 	elseif type(entities) == 'number' then
 		if NetworkGetEntityIsNetworked(entities) then entities = NetworkGetNetworkIdFromEntity(entities) end -- Allow non-networked entities to be targeted
-		if type(labels) == 'table' then
-			for _, v in pairs(labels) do
+		if labels then
+			if type(labels) == 'table' then
+				for _, v in pairs(labels) do
+					if Entities[entities] then
+						Entities[entities][v] = nil
+					end
+				end
+			elseif type(labels) == 'string' then
 				if Entities[entities] then
-					Entities[entities][v] = nil
+					Entities[entities][labels] = nil
 				end
 			end
-		elseif type(labels) == 'string' then
-			if Entities[entities] then
-				Entities[entities][labels] = nil
-			end
+		else
+			Entities[entities] = nil
 		end
 	end
 end
@@ -748,30 +784,38 @@ local function RemoveTargetModel(models, labels)
 	if type(models) == 'table' then
 		for _, model in pairs(models) do
 			if type(model) == 'string' then model = joaat(model) end
-			if type(labels) == 'table' then
-				for k, v in pairs(labels) do
+			if labels then
+				if type(labels) == 'table' then
+					for k, v in pairs(labels) do
+						if Models[model] then
+							Models[model][v] = nil
+						end
+					end
+				elseif type(labels) == 'string' then
 					if Models[model] then
-						Models[model][v] = nil
+						Models[model][labels] = nil
 					end
 				end
-			elseif type(labels) == 'string' then
-				if Models[model] then
-					Models[model][labels] = nil
-				end
+			else
+				Models[model] = nil
 			end
 		end
 	else
 		if type(models) == 'string' then models = joaat(models) end
-		if type(labels) == 'table' then
-			for k, v in pairs(labels) do
+		if labels then
+			if type(labels) == 'table' then
+				for _, v in pairs(labels) do
+					if Models[models] then
+						Models[models][v] = nil
+					end
+				end
+			elseif type(labels) == 'string' then
 				if Models[models] then
-					Models[models][v] = nil
+					Models[models][labels] = nil
 				end
 			end
-		elseif type(labels) == 'string' then
-			if Models[models] then
-				Models[models][labels] = nil
-			end
+		else
+			Models[models] = nil
 		end
 	end
 end
@@ -806,12 +850,16 @@ exports('Player', AddPlayer)
 ---@param typ number
 ---@param labels table | string
 local function RemoveType(typ, labels)
-	if type(labels) == 'table' then
-		for _, v in pairs(labels) do
-			Types[typ][v] = nil
+	if labels then
+		if type(labels) == 'table' then
+			for _, v in pairs(labels) do
+				Types[typ][v] = nil
+			end
+		elseif type(labels) == 'string' then
+			Types[typ][labels] = nil
 		end
-	elseif type(labels) == 'string' then
-		Types[typ][labels] = nil
+	else
+		Types[typ] = {}
 	end
 end
 
@@ -829,65 +877,153 @@ exports('RemoveObject', RemoveObject)
 
 ---@param labels table | string
 local function RemovePlayer(labels)
-	if type(labels) == 'table' then
-		for _, v in pairs(labels) do
-			Players[v] = nil
+	if labels then
+		if type(labels) == 'table' then
+			for _, v in pairs(labels) do
+				Players[v] = nil
+			end
+		elseif type(labels) == 'string' then
+			Players[labels] = nil
 		end
-	elseif type(labels) == 'string' then
-		Players[labels] = nil
+	else
+		Players = {}
 	end
 end
 exports('RemovePlayer', RemovePlayer)
 
 -- Misc. Exports
 
-exports("IsTargetActive", function() return targetActive end)
+local function IsTargetActive() return targetActive end
+exports("IsTargetActive", IsTargetActive)
 
-exports("IsTargetSuccess", function() return success end)
+local function IsTargetSuccess() return success end
+exports("IsTargetSuccess", IsTargetSuccess)
 
-exports("GetType", function(type, label) return Types[type][label] end)
+local function GetType(type, label) return Types[type][label] end
+exports("GetType", GetType)
 
-exports("GetZone", function(name) return Zones[name] end)
+local function GetZone(name) return Zones[name] end
+exports("GetZone", GetZone)
 
-exports("GetTargetBone", function(bone) return Bones.Options[bone][label] end)
+local function GetTargetBone(bone, label) return Bones.Options[bone][label] end
+exports("GetTargetBone", GetTargetBone)
 
-exports("GetTargetEntity", function(entity, label) return Entities[entity][label] end)
+local function GetTargetEntity(entity, label) return Entities[entity][label] end
+exports("GetTargetEntity", GetTargetEntity)
 
-exports("GetTargetModel", function(model, label) return Models[model][label] end)
+local function GetTargetModel(model, label) return Models[model][label] end
+exports("GetTargetModel", GetTargetModel)
 
-exports("GetPed", function(label) return Types[1][label] end)
+local function GetPed(label) return Types[1][label] end
+exports("GetPed", GetPed)
 
-exports("GetVehicle", function(label) return Types[2][label] end)
+local function GetVehicle(label) return Types[2][label] end
+exports("GetVehicle", GetVehicle)
 
-exports("GetObject", function(label) return Types[3][label] end)
+local function GetObject(label) return Types[3][label] end
+exports("GetObject", GetObject)
 
-exports("GetPlayer", function(label) return Players[label] end)
+local function GetPlayer(label) return Players[label] end
+exports("GetPlayer", GetPlayer)
 
-exports("UpdateType", function(type, label, data) Types[type][label] = data end)
+local function UpdateType(type, label, data) Types[type][label] = data end
+exports("UpdateType", UpdateType)
 
-exports("UpdateZone", function(name, data) Zones[name] = data end)
+local function UpdateZoneOptions (name, targetoptions)
+	targetoptions.distance = targetoptions.distance or Config.MaxDistance
+	Zones[name].targetoptions = targetoptions
+end
+exports("UpdateZoneOptions", UpdateZoneOptions) -- (name, targetoptions) end)
 
-exports("UpdateTargetBone", function(bone, label, data) Bones.Options[bone][label] = data end)
+local function UpdateTargetBone(bone, label, data) Bones.Options[bone][label] = data end
+exports("UpdateTargetBone", UpdateTargetBone)
 
-exports("UpdateTargetEntity", function(entity, label, data) Entities[entity][label] = data end)
+local function UpdateTargetEntity(entity, label, data) Entities[entity][label] = data end
+exports("UpdateTargetEntity", UpdateTargetEntity)
 
-exports("UpdateTargetModel", function(model, label, data) Models[model][label] = data end)
+local function UpdateTargetModel(model, label, data) Models[model][label] = data end
+exports("UpdateTargetModel", UpdateTargetModel)
 
-exports("UpdatePed", function(label, data) Types[1][label] = data end)
+local function UpdatePed(label, data) Types[1][label] = data end
+exports("UpdatePed", UpdatePed)
 
-exports("UpdateVehicle", function(label, data) Types[2][label] = data end)
+local function UpdateVehicle(label, data) Types[2][label] = data end
+exports("UpdateVehicle", UpdateVehicle)
 
-exports("UpdateObject", function(label, data) Types[3][label] = data end)
+local function UpdateObject(label, data) Types[3][label] = data end
+exports("UpdateObject", UpdateObject)
 
-exports("UpdatePlayer", function(label, data) Players[label] = data end)
+local function UpdatePlayer(label, data) Players[label] = data end
+exports("UpdatePlayer", UpdatePlayer)
 
-exports("AllowTargeting", function(bool)
+local function AllowTargeting(bool)
 	allowTarget = bool
-	if not allowTarget then
-		DisableTarget(true)
-	end
-end)
+
+	if allowTarget then return end
+
+	DisableTarget(true)
+end
+exports("AllowTargeting", AllowTargeting)
 
 -- Debug Option
 
 if Config.Debug then Load('debug') end
+
+-- qb-target interoperability
+
+local qb_targetExports = {
+	["RaycastCamera"] = RaycastCamera,
+	["DisableNUI"] = DisableNUI,
+	["LeftTarget"] = LeaveTarget,
+	["DisableTarget"] = DisableTarget,
+	["DrawOutlineEntity"] = DrawOutlineEntity,
+	["CheckEntity"] = CheckEntity,
+	["CheckBones"] = CheckBones,
+	["AddCircleZone"] = AddCircleZone,
+	["AddBoxZone"] = AddBoxZone,
+	["AddPolyZone"] = AddPolyZone,
+	["AddComboZone"] = AddComboZone,
+	["AddEntityZone"] = AddEntityZone,
+	["RemoveZone"] = RemoveZone,
+	["AddTargetBone"] = AddTargetBone,
+	["RemoveTargetBone"] = RemoveTargetBone,
+	["AddTargetEntity"] = AddTargetEntity,
+	["RemoveTargetEntity"] = RemoveTargetEntity,
+	["AddTargetModel"] = AddTargetModel,
+	["RemoveTargetModel"] = RemoveTargetModel,
+	["AddGlobalPed"] = AddPed,
+	["AddGlobalVehicle"] = AddVehicle,
+	["AddGlobalObject"] = AddObject,
+	["AddGlobalPlayer"] = AddPlayer,
+	["RemoveGlobalPed"] = RemovePed,
+	["RemoveGlobalVehicle"] = RemoveVehicle,
+	["RemoveGlobalObject"] = RemoveObject,
+	["RemoveGlobalPlayer"] = RemovePlayer,
+	["IsTargetActive"] = IsTargetActive,
+	["IsTargetSuccess"] = IsTargetSuccess,
+	["GetGlobalTypeData"] = GetType,
+	["GetZoneData"] = GetZone,
+	["GetTargetBoneData"] = GetTargetBone,
+	["GetTargetEntityData"] = GetTargetEntity,
+	["GetTargetModelData"] = GetTargetModel,
+	["GetGlobalPedData"] = GetPed,
+	["GetGlobalVehicleData"] = GetVehicle,
+	["GetGlobalObjectData"] = GetObject,
+	["GetGlobalPlayerData"] = GetPlayer,
+	["UpdateGlobalTypeData"] = UpdateType,
+	["UpdateZoneData"] = UpdateZoneOptions,
+	["UpdateTargetBoneData"] = UpdateTargetBone,
+	["UpdateTargetEntityData"] = UpdateTargetEntity,
+	["UpdateTargetModelData"] = UpdateTargetModel,
+	["UpdateGlobalPedData"] = UpdatePed,
+	["UpdateGlobalVehicleData"] = UpdateVehicle,
+	["UpdateGlobalObjectData"] = UpdateObject,
+	["UpdateGlobalPlayerData"] = UpdatePlayer,
+	["AllowTargeting"] = AllowTargeting
+}
+
+for exportName, func in pairs(qb_targetExports) do
+	AddEventHandler(('__cfx_export_qb-target_%s'):format(exportName), function(setCB)
+		setCB(func)
+	end)
+end
